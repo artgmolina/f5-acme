@@ -1,0 +1,23 @@
+when RULE_INIT {
+   set static::DEBUGACME 0
+}
+when DNS_REQUEST priority 2 {
+   #_acme-challenge.example.org. 300 IN TXT “gfj9Xq…Rg85nM”
+   if {([DNS::question type] eq "TXT") && ([DNS::question name] starts_with "_acme-challenge") } {
+      set response_content [class lookup [substr [DNS::question name] 16] dg_acme_challenge]
+      if {$response_content ne ""} {
+         if { $static::DEBUGACME } {
+            log local0. "[IP::client_addr]: Good ACME response: $response_content"
+         }
+         DNS::answer insert "[DNS::question name]. 60 [DNS::question class]  [DNS::question type] $response_content"
+         DNS::return
+      } else {
+         if { $static::DEBUGACME } {
+            log local0. "[IP::client_addr]: Bad ACME request requested for [substr [DNS::question name] 16]"
+         }
+      }
+      unset response_content
+      event disable all
+      return
+   }
+}
