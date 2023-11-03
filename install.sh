@@ -15,7 +15,7 @@
 ## Set download paths
 acmeclient_url="https://raw.githubusercontent.com/dehydrated-io/dehydrated/master"
 f5acmehandler_url="https://raw.githubusercontent.com/kevingstewart/simple-dehydrated-acme/main"
-
+f5acmehandler_url="https://raw.githubusercontent.com/artgmolina/f5-acme/main"
 ## Function: process_install --> installs all needed components
 process_install() {
     ## create working directory
