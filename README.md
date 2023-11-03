@@ -14,7 +14,7 @@ This project defines a set of utility functions for the [Dehydrated](https://git
 * Supports granular scheduling
 * Supports SMTP Reporting
 * Supports high availability
-* Supports debug logging
+* Supports debug logging 
 
 <br />
 
