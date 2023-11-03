@@ -50,6 +50,8 @@ process_install() {
         curl -ks ${f5acmehandler_url}/f5hook.sh -o /shared/acme/f5hook.sh && chmod +x /shared/acme/f5hook.sh
         curl -ks ${f5acmehandler_url}/config -o /shared/acme/config
         curl -ks ${f5acmehandler_url}/config -o /shared/acme/config_reporting
+        curl -ks ${f5acmehandler_url}/f5dnsacmehandler.sh -o /shared/acme/f5dnsacmehandler.sh && chmod +x /shared/acme/f5dnsacmehandler.sh
+        curl -ks ${f5acmehandler_url}/f5dnshook.sh -o /shared/acme/f5dnshook.sh && chmod +x /shared/acme/f5dnshook.sh
     fi
 
     exit 0
