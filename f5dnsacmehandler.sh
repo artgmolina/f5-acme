@@ -160,7 +160,7 @@ generate_new_cert_key() {
    process_errors "DEBUG (handler function: generate_new_cert_key)\n   DOMAIN=${DOMAIN}\n   COMMAND=${COMMAND}\n"
 
    ## Trigger ACME client. All BIG-IP certificate management is then handled by the hook script
-   cmd="${ACMEDIR}/dehydrated ${STANDARD_OPTIONS} --alias star_acmelabs.com -c -g -d ${DOMAIN} $(echo ${COMMAND} | tr -d '"')"
+   cmd="${ACMEDIR}/dehydrated ${STANDARD_OPTIONS} -c -g -d ${DOMAIN} $(echo ${COMMAND} | tr -d '"')"
    process_errors "DEBUG (handler: ACME client command):\n$cmd\n"
    do=$(REPORT=${REPORT} eval $cmd 2>&1 | cat | sed 's/^/    /')
    process_errors "DEBUG (handler: ACME client output):\n$do\n"
