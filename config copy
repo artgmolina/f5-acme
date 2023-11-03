@@ -24,7 +24,7 @@ KEY_ALGO=rsa
 KEYSIZE="2048"
 
 # E-mail to use during the registration (default: <unset>)
-CONTACT_EMAIL=arturo@acmelab.com
+CONTACT_EMAIL=admin@foo.com
 
 # Option to add CSR-flag indicating OCSP stapling to be mandatory (default: no)
 OCSP_MUST_STAPLE="yes"
@@ -83,4 +83,4 @@ WELLKNOWN="/tmp/wellknown"
 
 # Program or function called in certain situations
 # BASEDIR and WELLKNOWN variables are exported and can be used in an external program
-HOOK=${BASEDIR}/f5dnshook.sh
+HOOK=${BASEDIR}/f5hook.sh
