@@ -258,12 +258,12 @@ process_handler_config () {
    process_config_file "$COMMAND"
 
    ### Identify wildcards
-   domains=($DOMAIN)
+   domains=($SINGLEDOMAIN)
    process_errors "DEBUG (handler function: process_handler_config)\n  domains: $domains "
    
    if [[ ${#domains[@]} > 1 ]]
    then
-      DOMAIN= ${domains[1]}
+      SINGLEDOMAIN= ${domains[1]}
    fi
 
    if [[ ( ! -z "$SINGLEDOMAIN" ) && ( ! "$SINGLEDOMAIN" == "$DOMAIN" ) ]]
