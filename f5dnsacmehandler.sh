@@ -251,6 +251,8 @@ process_handler_config () {
 
    ## Split input line into {DOMAIN} and {COMMAND} variables.
    IFS="=" read -r DOMAIN COMMAND <<< $1
+      process_errors "DEBUG (handler function: process_handler_config)\n  DOMAIN: $DOMAIN "
+
    
    ## Pull values from default or defined config file
    process_config_file "$COMMAND"
