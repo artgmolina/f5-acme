@@ -257,6 +257,7 @@ process_handler_config () {
 
    ### Identify wildcards
    domains=($DOMAIN)
+   process_errors "DEBUG (handler function: process_handler_config)\n  domains: $domains "
    
    if [[ ${#domains[@]} > 1 ]]
    then
