@@ -265,7 +265,8 @@ process_handler_config () {
 
    if [[ ( ! -z "$SINGLEDOMAIN" ) && ( ! "$SINGLEDOMAIN" == "$DOMAIN" ) ]]
    then
-      ## Break out of function if SINGLEDOMAIN is specified and this pass is not for the matching domain in the dg      
+      ## Break out of function if SINGLEDOMAIN is specified and this pass is not for the matching domain in the dg 
+      process_errors "DEBUG (handler function: process_handler_config)\n SINGLEDOMAIN: $SINGLEDOMAIN DOMAIN: $DOMAIN  --domain argument specified for ($DOMAIN).\n"
       continue
    else
       process_errors "DEBUG (handler function: process_handler_config)\n   --domain argument specified for ($DOMAIN).\n"
