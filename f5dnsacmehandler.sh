@@ -255,11 +255,17 @@ process_handler_config () {
    ## Pull values from default or defined config file
    process_config_file "$COMMAND"
 
+   ### Identify wildcards
+   domains=($DOMAIN)
+   
+   if [[ ${#domains[@]} > 1 ]]
+   then
+      DOMAIN= ${domains[1]}
+   fi
+
    if [[ ( ! -z "$SINGLEDOMAIN" ) && ( ! "$SINGLEDOMAIN" == "$DOMAIN" ) ]]
    then
-      ## Break out of function if SINGLEDOMAIN is specified and this pass is not for the matching domain
-      process_errors "DEBUG (handler function: process_handler_config)\n  SINGLEDOMAIN: $SINGLEDOMAIN, DOMAIN: $DOMAIN\n"
-      
+      ## Break out of function if SINGLEDOMAIN is specified and this pass is not for the matching domain in the dg      
       continue
    else
       process_errors "DEBUG (handler function: process_handler_config)\n   --domain argument specified for ($DOMAIN).\n"
