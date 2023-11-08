@@ -54,10 +54,22 @@ deploy_challenge() {
     ## Add a record to the data group
     local DOMAIN="${1}" TOKEN_FILENAME="${2}" TOKEN_VALUE="${3}"
     process_errors "DEBUG (hook function: deploy_challenge)\n   DOMAIN=${DOMAIN}\n   TOKEN_FILENAME=${TOKEN_FILENAME}\n   TOKEN_VALUE=${TOKEN_VALUE}\n"
-    tmsh modify ltm data-group internal dg_acme_challenge records add { \"${DOMAIN}\" { data \"${TOKEN_VALUE}\" } }
-    logger -p local0.notice "DNS_HOOK: ${TOKEN_VALUE}"
+    ## Test if record already exist
+    #dg_record_exist=true && [[ "$(tmsh list ltm data-group internal dg_acme_challenge records {${DOMAIN}} 2>&1)" =~ "was not found" ]]
+    dg_record=$(tmsh list ltm data-group internal dg_acme_challenge records |grep -A1 ${DOMAIN}|grep data|cut -d'"' -f2)
+    ### Check current record to identify wildcards if a dg record is already created
+    if [ ! -z "$dg_record" ] 
+    then
+        #Not Empty
+        process_errors "DEBUG (hook function: deploy_challenge -> dg_acme_challenge record already exist.  DG Record: $dg_record.)\n"
+        tmsh modify ltm data-group internal dg_acme_challenge { records modify { \"${DOMAIN}\" { data \"${dg_record}\|\|${TOKEN_VALUE}\" } 
+        process_errors "DEBUG (hook function: deploy_challenge -> dg_acme_challenge record already exist.  DG Record: $dg_record.)\n"
+    else
+        process_errors "DEBUG (hook function: deploy_challenge -> dg_acme_challenge record is Empty)\n"
+        tmsh add ltm data-group internal dg_acme_challenge records add { \"${DOMAIN}\" { data ${TOKEN_VALUE} } }
+        process_errors "DEBUG (hook function: deploy_challenge -> dg_acme_challenge_record already exist --> $dg_record)\n"
+    fi
 }
-
 
 ## Function: clean_challenge --> called by ACME client to remove the ephemeral data group entry when the http-01 challenge is complete
 clean_challenge() {

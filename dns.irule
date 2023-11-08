@@ -4,7 +4,8 @@ when RULE_INIT {
 when DNS_REQUEST priority 2 {
    #_acme-challenge.example.org. 300 IN TXT “gfj9Xq…Rg85nM”
    if {([DNS::question type] eq "TXT") && ([DNS::question name] starts_with "_acme-challenge") } {
-      set response_content [class lookup [substr [DNS::question name] 16] dg_acme_challenge]
+      set response_content_all [class lookup [substr [DNS::question name] 16] dg_acme_challenge]
+      set response_content [split $response_content_all '||'] findstr response_content_all <search_string> [<skip_count> [<terminator count or string>]]
       if {$response_content ne ""} {
          if { $static::DEBUGACME } {
             log local0. "[IP::client_addr]: Good ACME response: $response_content"

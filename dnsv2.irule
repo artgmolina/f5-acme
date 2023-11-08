@@ -1,0 +1,41 @@
+when RULE_INIT {
+   set static::DEBUGACME 1
+}
+when DNS_REQUEST priority 2 {
+   #_acme-challenge.example.org. 300 IN TXT “gfj9Xq…Rg85nM”
+   if {([DNS::question type] eq "TXT") && ([DNS::question name] starts_with "_acme-challenge") } {
+      set domain [substr [DNS::question name] 16]
+      set response_content_all [class lookup $domain dg_acme_challenge]
+      if { $response_content_all contains {||} } {
+         log local0. "1. ACME challenge contains '||': $response_content_all"
+         if { [table set -excl -- ${domain}_wildcard 1 20 20] <= 5  } {
+            # Respond firist field
+            table incr -- ${domain}_wildcard 1
+            set response_content [getfield $response_content_all '||' 1]
+            log local0. "2.1. Responding: $response_content"
+         } else {
+            #Respond second field
+            set response_content [getfield $response_content_all '||' 2]
+            log local0. "2.2. Responding: $response_content"
+         }
+      } else {
+
+         set response_content $response_content_all
+         log local0. "2.3. Responding: $response_content"
+      }
+      if {$response_content ne ""} {
+         if { $static::DEBUGACME } {
+            log local0. "3. Good ACME response: All: $response_content_all Specific: $response_content"
+         }
+         DNS::answer insert "[DNS::question name]. 60 [DNS::question class]  [DNS::question type] $response_content"
+         DNS::return
+      } else {
+         if { $static::DEBUGACME } {
+            log local0. "4. Bad ACME request requested for [substr [DNS::question name] 16]"
+         }
+      }
+      unset response_content
+      event disable all
+      return
+   }
+}
