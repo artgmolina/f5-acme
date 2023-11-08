@@ -66,7 +66,7 @@ deploy_challenge() {
         process_errors "DEBUG (hook function: deploy_challenge -> dg_acme_challenge record already exist.  DG Record: $dg_record.)\n"
     else
         process_errors "DEBUG (hook function: deploy_challenge -> dg_acme_challenge record is Empty)\n"
-        tmsh add ltm data-group internal dg_acme_challenge records add { \"${DOMAIN}\" { data ${TOKEN_VALUE} } }
+        tmsh modify ltm data-group internal dg_acme_challenge records add { \"${DOMAIN}\" { data ${TOKEN_VALUE} } }
         process_errors "DEBUG (hook function: deploy_challenge -> dg_acme_challenge_record already exist --> $dg_record)\n"
     fi
 }
