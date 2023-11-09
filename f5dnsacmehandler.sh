@@ -289,6 +289,7 @@ process_handler_config () {
          echo "    PANIC: Configuration entry ($DOMAIN) is incorrect. Skipping." >> ${REPORT}
          continue
       fi
+   fi
 
    ## Validation check: Config entry must include "--ca" option
    if [[ ! "$COMMAND" =~ "--ca " ]]
