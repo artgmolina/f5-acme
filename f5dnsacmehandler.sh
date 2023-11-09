@@ -285,7 +285,7 @@ process_handler_config () {
    then
       process_errors "PANIC: Configuration entry ($DOMAIN) is incorrect. Skipping.\n"
       echo "    PANIC: Configuration entry ($DOMAIN) is incorrect. Skipping." >> ${REPORT}
-      continue 
+      continue
    fi
 
    ## Validation check: Config entry must include "--ca" option
