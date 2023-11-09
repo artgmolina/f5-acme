@@ -281,7 +281,7 @@ process_handler_config () {
 
    ## Validation check --> Defined DOMAIN should be syntactically correct
    dom_regex='^([a-zA-Z0-9](([a-zA-Z0-9-]){0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
-   if ! [[ "$DOMAIN" =~ [[:space:]] ]]
+   if [[ ! "$DOMAIN" =~ *[[:space:]]* ]]
    then
       if [[ ! "$DOMAIN" =~ $dom_regex ]]
       then
