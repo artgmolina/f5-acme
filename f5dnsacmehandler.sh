@@ -281,6 +281,7 @@ process_handler_config () {
 
    ## Validation check --> Defined DOMAIN should be syntactically correct
    dom_regex='^([a-zA-Z0-9](([a-zA-Z0-9-]){0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
+   process_errors "validating"
    if [[ ! "$DOMAIN" =~ [[:space:]] ]]
    then
       process_errors "Contains space $DOMAIN"
