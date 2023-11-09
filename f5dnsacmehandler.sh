@@ -290,6 +290,8 @@ process_handler_config () {
          echo "    PANIC: Configuration entry ($DOMAIN) is incorrect. Skipping." >> ${REPORT}
          continue
       fi
+   else
+      process_errors "no contiene espacios $DOMAIN"
    fi
 
    ## Validation check: Config entry must include "--ca" option
