@@ -281,12 +281,14 @@ process_handler_config () {
 
    ## Validation check --> Defined DOMAIN should be syntactically correct
    dom_regex='^([a-zA-Z0-9](([a-zA-Z0-9-]){0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
-   if [[ ! "$DOMAIN" =~ $dom_regex ]]
+   if ! [[ "$DOMAIN" =~ [[:space:]] ]]
    then
-      process_errors "PANIC: Configuration entry ($DOMAIN) is incorrect. Skipping.\n"
-      echo "    PANIC: Configuration entry ($DOMAIN) is incorrect. Skipping." >> ${REPORT}
-      continue
-   fi
+      if [[ ! "$DOMAIN" =~ $dom_regex ]]
+      then
+         process_errors "PANIC: Configuration entry ($DOMAIN) is incorrect. Skipping.\n"
+         echo "    PANIC: Configuration entry ($DOMAIN) is incorrect. Skipping." >> ${REPORT}
+         continue
+      fi
 
    ## Validation check: Config entry must include "--ca" option
    if [[ ! "$COMMAND" =~ "--ca " ]]
