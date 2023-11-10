@@ -37,6 +37,7 @@
 ACMEDIR=/shared/acme
 #STANDARD_OPTIONS="-x -k ${ACMEDIR}/f5hook.sh -t http-01"
 STANDARD_OPTIONS="-x -k ${ACMEDIR}/f5dnshook.sh -t dns-01"
+WILDCARD_OPTIONS="-x -k ${ACMEDIR}/f5wildcardhook.sh -t dns-01"
 REGISTER_OPTIONS="--register --accept-terms"
 LOGFILE=/var/log/acmehandler
 FORCERENEW="no"
@@ -177,7 +178,7 @@ generate_new_cert_key() {
       
       ###SOLO WILDCARD
       ## Trigger ACME client. All BIG-IP certificate management is then handled by the hook script
-      cmd="${ACMEDIR}/dehydrated ${STANDARD_OPTIONS} -c -g -d \"${DOMAIN}\" $(echo ${COMMAND} | tr -d '"')"
+      cmd="${ACMEDIR}/dehydrated ${WILDCARD_OPTIONS} -c -g -d \"${DOMAIN}\" $(echo ${COMMAND} | tr -d '"')"
       process_errors "DEBUG (handler: ACME client command):\n$cmd\n"
       do=$(REPORT=${REPORT} eval $cmd 2>&1 | cat | sed 's/^/    /')
       process_errors "DEBUG (handler: ACME client output):\n$do\n"
