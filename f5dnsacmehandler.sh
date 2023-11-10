@@ -265,8 +265,7 @@ process_handler_config () {
    if [[ $DOMAIN =~ [[:space:]] ]]
    then
       process_errors "***DOMAIN: $DOMAIN"
-      DOMAIN=echo "$DOMAIN" | sed 's/\\//'
-      DOMAIN=echo "$DOMAIN" | sed 's/\"//'
+      DOMAIN=$(echo "$DOMAIN" | sed 's/\\//' | sed 's/\"//g')
       process_errors "***Removing slashes: $DOMAIN"
    fi
    
