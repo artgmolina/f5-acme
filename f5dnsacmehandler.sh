@@ -180,6 +180,20 @@ generate_new_cert_key() {
 ## the renewed certificate and replaces the existing certificate via TMSH transaction.
 generate_cert_from_csr() {
    local DOMAIN="${1}" COMMAND="${2}"
+   ### Cleaning DOMAIN with spaces and slashes
+   if [[ $DOMAIN =~ [[:space:]] ]]
+   then
+      process_errors "***DOMAIN: $DOMAIN"
+      DOMAIN=$(echo "$DOMAIN" | sed 's/\\//' | sed 's/\"//g')
+      process_errors "Generate_cert_from_csr: ***Removing slashes: $DOMAIN"
+      DOMAINS_WILDCARD=($DOMAIN)
+      DOMAIN=${DOMAINS_WILDCARD[1]}
+   fi
+   
+   
+   
+   ######
+   
    process_errors "DEBUG (handler function: generate_cert_from_csr)\n   DOMAIN=${DOMAIN}\n   COMMAND=${COMMAND}\n"
 
    ## Fetch existing subject-alternative-name (SAN) values from the certificate
@@ -258,10 +272,6 @@ process_handler_config () {
    process_config_file "$COMMAND"
 
    ### Identify wildcards
-   domains=($SINGLEDOMAIN)
-   process_errors " domains: $domains "
-   process_errors " domain: $DOMAIN "
-   
    if [[ $DOMAIN =~ [[:space:]] ]]
    then
       process_errors "***DOMAIN: $DOMAIN"
@@ -277,7 +287,6 @@ process_handler_config () {
    else
       process_errors "DEBUG (handler function: process_handler_config)\n   --domain argument specified for ($DOMAIN).\n"
    fi
-   process_errors "validating"
 
    echo "\n    Processing for domain: ${DOMAIN}" >> ${REPORT}
 
@@ -298,7 +307,7 @@ process_handler_config () {
          continue
       fi
    else
-      process_errors "DOMAIN ($DOMAIN) is incorrect."
+      process_errors "***DOMAIN ($DOMAIN) processing as wildcard."
    fi
 
    ## Validation check: Config entry must include "--ca" option
