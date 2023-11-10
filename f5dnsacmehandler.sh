@@ -262,7 +262,13 @@ process_handler_config () {
    process_errors " domains: $domains "
    process_errors " domain: $DOMAIN "
    
-
+   if [[ ! "$DOMAIN" =~ [[:space:]] ]]
+   then
+      process_errors "***DOMAIN: $DOMAIN"
+      DOMAIN=echo "$DOMAIN" | sed 's/\\//'
+      process_errors "***Removing slashes: $DOMAIN"
+   fi
+   
    if [[ ( ! -z "$SINGLEDOMAIN" ) && ( ! "$SINGLEDOMAIN" == "$DOMAIN" ) ]]
    then
       ## Break out of function if SINGLEDOMAIN is specified and this pass is not for the matching domain in the dg 
@@ -282,12 +288,9 @@ process_handler_config () {
 
    ## Validation check --> Defined DOMAIN should be syntactically correct
    dom_regex='^([a-zA-Z0-9](([a-zA-Z0-9-]){0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
+   dom_regex_wildcard='^([a-zA-Z0-9](([a-zA-Z0-9-]){0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,} \*\.([a-zA-Z0-9](([a-zA-Z0-9-]){0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
    if [[ ! "$DOMAIN" =~ [[:space:]] ]]
    then
-      process_errors "Contains space $DOMAIN"
-      DOMAIN=echo "$DOMAIN" | sed 's/\\//'
-      process_errors "DOMAIN IS NOW CLEAN: $DOMAIN"
-      
       if [[ ! "$DOMAIN" =~ $dom_regex ]]
       then
          process_errors "PANIC: Configuration entry ($DOMAIN) is incorrect. Skipping.\n"
@@ -295,7 +298,7 @@ process_handler_config () {
          continue
       fi
    else
-      process_errors "no contiene espacios $DOMAIN"
+      process_errors "DOMAIN ($DOMAIN) is incorrect."
    fi
 
    ## Validation check: Config entry must include "--ca" option
