@@ -266,6 +266,7 @@ process_handler_config () {
    then
       process_errors "***DOMAIN: $DOMAIN"
       DOMAIN=echo "$DOMAIN" | sed 's/\\//'
+      DOMAIN=echo "$DOMAIN" | sed 's/\"//'
       process_errors "***Removing slashes: $DOMAIN"
    fi
    
