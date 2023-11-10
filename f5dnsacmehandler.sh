@@ -168,7 +168,7 @@ generate_new_cert_key() {
       #DOMAIN=$(echo "$DOMAIN" | sed 's/\"//g')
       #DOMAIN=$(echo "$DOMAIN" | sed 's/\"//g')
       #process_errors "***Generate_cert_from_csr: Removing slashes: $DOMAIN"
-      DOMAIN=$(echo $DOMAIN |sed 's/\*/\\\*)
+      DOMAIN=$(echo $DOMAIN |sed 's/\*/\\\*/')
       DOMAINS_WILDCARD=($DOMAIN)
       # acmelabs.com
       DOMAIN1=${DOMAINS_WILDCARD[0]}
