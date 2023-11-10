@@ -167,12 +167,14 @@ generate_new_cert_key() {
       # acmelabs.com \*.acmelabs.com
       #DOMAIN=$(echo "$DOMAIN" | sed 's/\"//g')
       #DOMAIN=$(echo "$DOMAIN" | sed 's/\"//g')
-      process_errors "***Generate_cert_from_csr: Removing slashes: $DOMAIN"
+      #process_errors "***Generate_cert_from_csr: Removing slashes: $DOMAIN"
       DOMAINS_WILDCARD=($DOMAIN)
+      # acmelabs.com
       DOMAIN1=${DOMAINS_WILDCARD[0]}
       # *.acmelabs.com
       WILDCARD=${DOMAINS_WILDCARD[1]}
       # star.acmelabs.com
+      process_errors "wildcard $WILDCARD"
       WILDCARD_STAR=$(echo $WILDCARD | sed 's/\*/star/')
       wildcard=1
       
