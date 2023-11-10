@@ -158,13 +158,36 @@ process_config_file() {
 generate_new_cert_key() {
    local DOMAIN="${1}" COMMAND="${2}"
    process_errors "DEBUG (handler function: generate_new_cert_key)\n   DOMAIN=${DOMAIN}\n   COMMAND=${COMMAND}\n"
-
-   ## Trigger ACME client. All BIG-IP certificate management is then handled by the hook script
-   cmd="${ACMEDIR}/dehydrated ${STANDARD_OPTIONS} -c -g -d ${DOMAIN} $(echo ${COMMAND} | tr -d '"')"
-   process_errors "DEBUG (handler: ACME client command):\n$cmd\n"
-   do=$(REPORT=${REPORT} eval $cmd 2>&1 | cat | sed 's/^/    /')
-   process_errors "DEBUG (handler: ACME client output):\n$do\n"
-
+#####
+   ### Cleaning DOMAIN with spaces and slashes
+   if [[ $DOMAIN =~ [[:space:]] ]]
+   then
+      process_errors "***Generate_cert_from_csr: DOMAIN: $DOMAIN"
+      # acmelabs.com \*.acmelabs.com
+      DOMAIN=$(echo "$DOMAIN" | sed 's/\"//g')
+      process_errors "***Generate_cert_from_csr: Removing slashes: $DOMAIN"
+      DOMAINS_WILDCARD=($DOMAIN)
+      DOMAIN1=${DOMAINS_WILDCARD[0]}
+      # *.acmelabs.com
+      WILDCARD=${DOMAINS_WILDCARD[1]}
+      # star.acmelabs.com
+      WILDCARD_STAR=$(echo $WILDCARD | sed 's/\*/star/')
+      wildcard=1
+      
+      ###SOLO WILDCARD
+      ## Trigger ACME client. All BIG-IP certificate management is then handled by the hook script
+      cmd="${ACMEDIR}/dehydrated ${STANDARD_OPTIONS} -c -g -d ${DOMAIN} $(echo ${COMMAND} | tr -d '"')"
+      process_errors "DEBUG (handler: ACME client command):\n$cmd\n"
+      do=$(REPORT=${REPORT} eval $cmd 2>&1 | cat | sed 's/^/    /')
+      process_errors "DEBUG (handler: ACME client output):\n$do\n"
+   else
+######
+      ## Trigger ACME client. All BIG-IP certificate management is then handled by the hook script
+      cmd="${ACMEDIR}/dehydrated ${STANDARD_OPTIONS} -c -g -d ${DOMAIN} $(echo ${COMMAND} | tr -d '"')"
+      process_errors "DEBUG (handler: ACME client command):\n$cmd\n"
+      do=$(REPORT=${REPORT} eval $cmd 2>&1 | cat | sed 's/^/    /')
+      process_errors "DEBUG (handler: ACME client output):\n$do\n"
+   fi
    ## Catch connectivity errors
    if [[ $do =~ "ERROR: Problem connecting to server" ]]
    then
@@ -181,81 +204,69 @@ generate_new_cert_key() {
 generate_cert_from_csr() {
    local DOMAIN="${1}" COMMAND="${2}"
    
-   ### Cleaning DOMAIN with spaces and slashes
-   if [[ $DOMAIN =~ [[:space:]] ]]
+   process_errors "DEBUG (handler function: generate_cert_from_csr)\n   DOMAIN=${DOMAIN}\n   COMMAND=${COMMAND}\n"
+
+   ## Fetch existing subject-alternative-name (SAN) values from the certificate
+   certsan=$(tmsh list sys crypto cert ${DOMAIN} | grep subject-alternative-name | awk '{$1=$1}1' | sed 's/subject-alternative-name //')
+   ## If certsan is empty, assign the domain/CN value
+   if [ -z "$certsan" ]
    then
-      process_errors "***DOMAIN: $DOMAIN"
-      DOMAIN=$(echo "$DOMAIN" | sed 's/\\//' | sed 's/\"//g')
-      process_errors "Generate_cert_from_csr: ***Removing slashes: $DOMAIN"
-      DOMAINS_WILDCARD=($DOMAIN)
-      DOMAIN=${DOMAINS_WILDCARD[1]}
-      wildcard=1
-   else
-   
-      process_errors "DEBUG (handler function: generate_cert_from_csr)\n   DOMAIN=${DOMAIN}\n   COMMAND=${COMMAND}\n"
-
-      ## Fetch existing subject-alternative-name (SAN) values from the certificate
-      certsan=$(tmsh list sys crypto cert ${DOMAIN} | grep subject-alternative-name | awk '{$1=$1}1' | sed 's/subject-alternative-name //')
-      ## If certsan is empty, assign the domain/CN value
-      if [ -z "$certsan" ]
-      then
-         certsan="DNS:${DOMAIN}"
-      fi
-
-      ## Commencing acme renewal process - first delete and recreate a csr for domain (check first to prevent ltm error log message if CSR doesn't exist)
-      csrexists=false && [[ "$(tmsh list sys crypto csr ${DOMAIN} 2>&1)" =~ "${DOMAIN}" ]] && csrexists=true
-      if ($csrexists)
-      then
-         tmsh delete sys crypto csr ${DOMAIN} > /dev/null 2>&1
-      fi
-      tmsh create sys crypto csr ${DOMAIN} common-name ${DOMAIN} subject-alternative-name "${certsan}" key ${DOMAIN}
-      
-      ## Dump csr to cert.csr in DOMAIN subfolder
-      mkdir -p ${ACMEDIR}/certs/${DOMAIN} 2>&1
-      tmsh list sys crypto csr ${DOMAIN} |sed -n '/-----BEGIN CERTIFICATE REQUEST-----/,/-----END CERTIFICATE REQUEST-----/p' > ${ACMEDIR}/certs/${DOMAIN}/cert.csr
-      process_errors "DEBUG (handler: csr):\n$(cat ${ACMEDIR}/certs/${DOMAIN}/cert.csr | sed 's/^/   /')\n"
-
-      ## Trigger ACME client and dump renewed cert to certs/{domain}/cert.pem
-      cmd="${ACMEDIR}/dehydrated ${STANDARD_OPTIONS} -s ${ACMEDIR}/certs/${DOMAIN}/cert.csr $(echo ${COMMAND} | tr -d '"')"
-      process_errors "DEBUG (handler: ACME client command):\n   $cmd\n"
-      do=$(eval $cmd 2>&1 | cat | sed 's/^/    /')
-      process_errors "DEBUG (handler: ACME client output):\n$do\n"
-
-      ## Catch connectivity errors
-      if [[ $do =~ "ERROR: Problem connecting to server" ]]
-      then
-         process_errors "PANIC: Connectivity error for (${DOMAIN}). Please verify configuration (${COMMAND}).\n\n"
-         echo "    PANIC: Connectivity error for (${DOMAIN}). Please verify configuration (${COMMAND})." >> ${REPORT}
-         continue
-      fi
-
-      ## Catch and process returned certificate
-      if [[ $do =~ "# CERT #" ]]
-      then
-         if [[ "${FULLCHAIN}" == "true" ]]
-         then
-            cat $do 2>&1 | sed -n '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sed -E 's/^\s+//g' > ${ACMEDIR}/certs/${DOMAIN}/cert.pem
-         else
-            cat $do 2>&1 | sed -n '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p;/-END CERTIFICATE-/q' | sed -E 's/^\s+//g' > ${ACMEDIR}/certs/${DOMAIN}/cert.pem
-         fi
-      else
-         process_errors "ERROR: ACME client failure: $do\n"
-         return
-      fi
-
-      ## Create transaction to update existing cert and key
-      (echo create cli transaction
-         echo install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/cert.pem
-         echo submit cli transaction
-      ) | tmsh > /dev/null 2>&1
-      process_errors "DEBUG (handler: tmsh transaction) Installed certificate via tmsh transaction\n"
-      echo "    Installed certificate via tmsh transaction." >> ${REPORT}
-
-      ## Clean up objects
-      tmsh delete sys crypto csr ${DOMAIN}
-      rm -rf ${ACMEDIR}/certs/${DOMAIN}
-      process_errors "DEBUG (handler: cleanup) Cleaned up CSR and ${DOMAIN} folder\n\n"
+      certsan="DNS:${DOMAIN}"
    fi
+
+   ## Commencing acme renewal process - first delete and recreate a csr for domain (check first to prevent ltm error log message if CSR doesn't exist)
+   csrexists=false && [[ "$(tmsh list sys crypto csr ${DOMAIN} 2>&1)" =~ "${DOMAIN}" ]] && csrexists=true
+   if ($csrexists)
+   then
+      tmsh delete sys crypto csr ${DOMAIN} > /dev/null 2>&1
+   fi
+   tmsh create sys crypto csr ${DOMAIN} common-name ${DOMAIN} subject-alternative-name "${certsan}" key ${DOMAIN}
+   
+   ## Dump csr to cert.csr in DOMAIN subfolder
+   mkdir -p ${ACMEDIR}/certs/${DOMAIN} 2>&1
+   tmsh list sys crypto csr ${DOMAIN} |sed -n '/-----BEGIN CERTIFICATE REQUEST-----/,/-----END CERTIFICATE REQUEST-----/p' > ${ACMEDIR}/certs/${DOMAIN}/cert.csr
+   process_errors "DEBUG (handler: csr):\n$(cat ${ACMEDIR}/certs/${DOMAIN}/cert.csr | sed 's/^/   /')\n"
+
+   ## Trigger ACME client and dump renewed cert to certs/{domain}/cert.pem
+   cmd="${ACMEDIR}/dehydrated ${STANDARD_OPTIONS} -s ${ACMEDIR}/certs/${DOMAIN}/cert.csr $(echo ${COMMAND} | tr -d '"')"
+   process_errors "DEBUG (handler: ACME client command):\n   $cmd\n"
+   do=$(eval $cmd 2>&1 | cat | sed 's/^/    /')
+   process_errors "DEBUG (handler: ACME client output):\n$do\n"
+
+   ## Catch connectivity errors
+   if [[ $do =~ "ERROR: Problem connecting to server" ]]
+   then
+      process_errors "PANIC: Connectivity error for (${DOMAIN}). Please verify configuration (${COMMAND}).\n\n"
+      echo "    PANIC: Connectivity error for (${DOMAIN}). Please verify configuration (${COMMAND})." >> ${REPORT}
+      continue
+   fi
+
+   ## Catch and process returned certificate
+   if [[ $do =~ "# CERT #" ]]
+   then
+      if [[ "${FULLCHAIN}" == "true" ]]
+      then
+         cat $do 2>&1 | sed -n '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sed -E 's/^\s+//g' > ${ACMEDIR}/certs/${DOMAIN}/cert.pem
+      else
+         cat $do 2>&1 | sed -n '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p;/-END CERTIFICATE-/q' | sed -E 's/^\s+//g' > ${ACMEDIR}/certs/${DOMAIN}/cert.pem
+      fi
+   else
+      process_errors "ERROR: ACME client failure: $do\n"
+      return
+   fi
+
+   ## Create transaction to update existing cert and key
+   (echo create cli transaction
+      echo install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/cert.pem
+      echo submit cli transaction
+   ) | tmsh > /dev/null 2>&1
+   process_errors "DEBUG (handler: tmsh transaction) Installed certificate via tmsh transaction\n"
+   echo "    Installed certificate via tmsh transaction." >> ${REPORT}
+
+   ## Clean up objects
+   tmsh delete sys crypto csr ${DOMAIN}
+   rm -rf ${ACMEDIR}/certs/${DOMAIN}
+   process_errors "DEBUG (handler: cleanup) Cleaned up CSR and ${DOMAIN} folder\n\n"
 }
 
 
