@@ -259,9 +259,9 @@ process_handler_config () {
 
    ### Identify wildcards
    domains=($SINGLEDOMAIN)
- process_errors " domains: $domains "
+   process_errors " domains: $domains "
    process_errors " domain: $DOMAIN "
-      
+   
 
    if [[ ( ! -z "$SINGLEDOMAIN" ) && ( ! "$SINGLEDOMAIN" == "$DOMAIN" ) ]]
    then
@@ -285,6 +285,9 @@ process_handler_config () {
    if [[ ! "$DOMAIN" =~ [[:space:]] ]]
    then
       process_errors "Contains space $DOMAIN"
+      DOMAIN=echo "$DOMAIN" | sed 's/\\//'
+      process_errors "DOMAIN IS NOW CLEAN: $DOMAIN"
+      
       if [[ ! "$DOMAIN" =~ $dom_regex ]]
       then
          process_errors "PANIC: Configuration entry ($DOMAIN) is incorrect. Skipping.\n"
