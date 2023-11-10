@@ -262,7 +262,7 @@ process_handler_config () {
    process_errors " domains: $domains "
    process_errors " domain: $DOMAIN "
    
-   if [[ ! "$DOMAIN" =~ [[:space:]] ]]
+   if [[ "$DOMAIN" =~ [[:space:]] ]]
    then
       process_errors "***DOMAIN: $DOMAIN"
       DOMAIN=echo "$DOMAIN" | sed 's/\\//'
