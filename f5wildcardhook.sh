@@ -57,13 +57,13 @@ deploy_challenge() {
     process_errors "DEBUG (hook function: deploy_challenge)\n   DOMAIN=${DOMAIN}\n   TOKEN_FILENAME=${TOKEN_FILENAME}\n   TOKEN_VALUE=${TOKEN_VALUE}\n"
     ## Test if record already exist
     #dg_record_exist=true && [[ "$(tmsh list ltm data-group internal dg_acme_challenge records {${DOMAIN}} 2>&1)" =~ "was not found" ]]
-    dg_record=$(tmsh list ltm data-group internal dg_acme_challenge records |grep -A1 ${DOMAIN}|grep data|cut -d'"' -f2)
+    dg_record=$(tmsh list ltm data-group internal dg_acme_challenge records |grep -A1 ${DOMAIN}|grep data|awk '{printf $2}')
     ### Check current record to identify wildcards if a dg record is already created
     if [ ! -z "$dg_record" ] 
     then
         #Not Empty
         process_errors "DEBUG (hook function: deploy_challenge -> dg_acme_challenge record already exist.  DG Record: $dg_record.)\n"
-        tmsh modify ltm data-group internal dg_acme_challenge { records modify { \"${DOMAIN}\" { \"${dg_record}\|\|${TOKEN_VALUE}\" } } }
+        tmsh modify ltm data-group internal dg_acme_challenge { records modify { \"${DOMAIN}\" { data \"${dg_record}\|\|${TOKEN_VALUE}\" } } }
         process_errors "DEBUG (hook function: deploy_challenge -> dg_acme_challenge record already exist.  DG Record: $dg_record.)\n"
     else
         process_errors "DEBUG (hook function: deploy_challenge -> dg_acme_challenge record is Empty)\n"
