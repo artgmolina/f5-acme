@@ -163,23 +163,8 @@ generate_new_cert_key() {
    ### Cleaning DOMAIN with spaces and slashes
    if [[ $DOMAIN =~ [[:space:]] ]]
    then
-      process_errors "***Generate_cert_from_csr: DOMAIN: $DOMAIN"
-      # acmelabs.com \*.acmelabs.com
-      #DOMAIN=$(echo "$DOMAIN" | sed 's/\"//g')
-      #DOMAIN=$(echo "$DOMAIN" | sed 's/\"//g')
-      #process_errors "***Generate_cert_from_csr: Removing slashes: $DOMAIN"
+      process_errors "***generate_new_cert_key - WILDCARD DOMAIN: $DOMAIN"
       
-      DOMAINS_WILDCARD=($DOMAIN)
-      # acmelabs.com
-      DOMAIN1=${DOMAINS_WILDCARD[0]}
-      # *.acmelabs.com
-      WILDCARD=${DOMAINS_WILDCARD[1]}
-      # star.acmelabs.com
-      process_errors "wildcard $WILDCARD"
-      WILDCARD_STAR=$(echo $WILDCARD | sed 's/\*/star/')
-      wildcard=1
-      ###
-      DOMAIN=$(echo $DOMAIN | sed 's/\*/\\\*/')
       
       ###SOLO WILDCARD
       ## Trigger ACME client. All BIG-IP certificate management is then handled by the hook script
@@ -187,12 +172,11 @@ generate_new_cert_key() {
       # process_errors "DEBUG (handler: ACME client command):\n$cmd\n"
       # do=$(REPORT=${REPORT} eval $cmd 2>&1 | cat | sed 's/^/    /')
       # process_errors "DEBUG (handler: ACME client output):\n$do\n"
-      cmd="${ACMEDIR}/dehydrated ${WILDCARD_OPTIONS} -c -g -d '${DOMAIN}' $(echo ${COMMAND} | tr -d '"')"
+      cmd="${ACMEDIR}/dehydrated ${WILDCARD_OPTIONS} -c -g -d \"${DOMAIN}\" $(echo ${COMMAND} | tr -d '"')"
+      # cmd="${ACMEDIR}/dehydrated ${WILDCARD_OPTIONS} -c -g -d \"${DOMAIN}\" $(echo ${COMMAND} | tr -d '"')"
       process_errors "DEBUG (handler: ACME client command):\n$cmd\n"
-      do=$(REPORT=${REPORT} eval $cmd 2>&1 | cat | sed 's/^/    /')
-      process_errors "DEBUG (handler: ACME client output):\n$do\n"
-      
-      
+      eval $cmd
+      #process_errors "DEBUG (handler: ACME client output):\n$do\n"
    else
 ######
       ## Trigger ACME client. All BIG-IP certificate management is then handled by the hook script
