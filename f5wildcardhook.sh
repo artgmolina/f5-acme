@@ -68,7 +68,7 @@ deploy_challenge() {
     else
         process_errors "DEBUG (hook function: deploy_challenge -> dg_acme_challenge record is Empty)\n"
         tmsh modify ltm data-group internal dg_acme_challenge records add { \"${DOMAIN}\" { data ${TOKEN_VALUE} } }
-        process_errors "DEBUG (hook function: deploy_challenge -> dg_acme_challenge_record already exist --> $dg_record)\n"
+        process_errors "DEBUG (hook function: deploy_challenge -> dg_acme_challenge_record --> $dg_record)\n"
     fi
 }
 
@@ -76,8 +76,11 @@ deploy_challenge() {
 clean_challenge() {
     ## Delete the record from the data group
     local DOMAIN="${1}" TOKEN_FILENAME="${2}" TOKEN_VALUE="${3}"
-    process_errors "DEBUG (hook function: clean_challenge)\n   DOMAIN=${DOMAIN}\n   TOKEN_FILENAME=${TOKEN_FILENAME}\n   TOKEN_VALUE=${TOKEN_VALUE}\n"
-    tmsh modify ltm data-group internal dg_acme_challenge records delete { \"${DOMAIN}\" }
+    dg_record=$(tmsh list ltm data-group internal dg_acme_challenge records |grep -A1 ${DOMAIN}|grep data|awk '{printf $2}')
+    if [ ! -z "$dg_record" ] 
+    then
+        process_errors "DEBUG (hook function: clean_challenge)\n   DOMAIN=${DOMAIN}\n   TOKEN_FILENAME=${TOKEN_FILENAME}\n   TOKEN_VALUE=${TOKEN_VALUE}\n"
+        tmsh modify ltm data-group internal dg_acme_challenge records delete { \"${DOMAIN}\" }
 }
 
 
