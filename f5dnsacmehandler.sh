@@ -164,7 +164,7 @@ generate_new_cert_key() {
    if [[ $DOMAIN =~ [[:space:]] ]]
    then
       process_errors "***generate_new_cert_key - WILDCARD DOMAIN: $DOMAIN"
-      
+
       
       ###SOLO WILDCARD
       ## Trigger ACME client. All BIG-IP certificate management is then handled by the hook script
