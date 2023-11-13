@@ -189,7 +189,7 @@ generate_new_cert_key() {
       # process_errors "DEBUG (handler: ACME client output):\n$do\n"
       cmd="${ACMEDIR}/dehydrated ${WILDCARD_OPTIONS} -c -g -d '${DOMAIN}' $(echo ${COMMAND} | tr -d '"')"
       process_errors "DEBUG (handler: ACME client command):\n$cmd\n"
-      eval $cmd
+      do=$(REPORT=${REPORT} eval $cmd 2>&1 | cat | sed 's/^/    /')
       process_errors "DEBUG (handler: ACME client output):\n$do\n"
       
       
