@@ -179,7 +179,7 @@ generate_new_cert_key() {
       WILDCARD_STAR=$(echo $WILDCARD | sed 's/\*/star/')
       wildcard=1
       ###
-      DOMAIN=$(echo $DOMAIN | sed 's/\*/\\\*/')
+      #DOMAIN=$(echo $DOMAIN | sed 's/\*/\\\*/')
       
       ###SOLO WILDCARD
       ## Trigger ACME client. All BIG-IP certificate management is then handled by the hook script
