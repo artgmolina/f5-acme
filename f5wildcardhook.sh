@@ -81,6 +81,7 @@ clean_challenge() {
     then
         process_errors "DEBUG (hook function: clean_challenge)\n   DOMAIN=${DOMAIN}\n   TOKEN_FILENAME=${TOKEN_FILENAME}\n   TOKEN_VALUE=${TOKEN_VALUE}\n"
         tmsh modify ltm data-group internal dg_acme_challenge records delete { \"${DOMAIN}\" }
+    fi
 }
 
 
