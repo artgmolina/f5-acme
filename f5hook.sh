@@ -21,7 +21,7 @@ process_config_file() {
     FULLCHAIN=true
     ZEROCYCLE=3
     CREATEPROFILE=false
-    DEBUGLOG=false
+    DEBUGLOG=true
 
     . "${CONFIG}"
 }

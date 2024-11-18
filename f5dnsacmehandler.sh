@@ -4,8 +4,8 @@
 ## Maintainer: kevin-at-f5-dot-com
 ## Version: 20231013-1
 ## Description: Wrapper utility script for Dehydrated ACME client
-## 
-## Configuration and installation: 
+##
+## Configuration and installation:
 ##    - Install: curl -s https://raw.githubusercontent.com/f5devcentral/kojot-acme/main/install.sh | bash
 ##    - Update global config data group (dg_acme_config) - [domain] := --ca [acme-provider-url] [--config [config-path]]
 ##        www.foo.com := --ca https://acme-v02.api.letsencrypt.org/directory
@@ -16,7 +16,7 @@
 ##    - Perform an initial fetch: cd /shared/acme && ./f5acmehandler.sh
 ##    - Set a cron-based schedule: cd /shared/acme && ./f5acmehandler.sh --schedule "00 04 * * 1"
 
-# 
+#
 # Example how to deploy a DNS challenge for Wildcard
 #
 # $1 an operation name (clean_challenge, deploy_challenge, deploy_cert, invalid_challenge or request_failure) and some operands for that. For deploy_challenge
@@ -35,8 +35,8 @@
 
 ## Static processing variables - do not touch
 ACMEDIR=/shared/acme
-STANDARD_OPTIONS="-x -k ${ACMEDIR}/f5hook.sh -t http-01"
-#STANDARD_OPTIONS="-x -k ${ACMEDIR}/f5dnshook.sh -t dns-01"
+#STANDARD_OPTIONS="-x -k ${ACMEDIR}/f5hook.sh -t http-01"
+STANDARD_OPTIONS="-x -k ${ACMEDIR}/f5dnshook.sh -t dns-01"
 WILDCARD_OPTIONS="-x -k ${ACMEDIR}/f5wildcardhook.sh -t dns-01"
 REGISTER_OPTIONS="--register --accept-terms"
 LOGFILE=/var/log/acmehandler
@@ -84,7 +84,7 @@ process_report () {
       then
          # echo -e "From: ${REPORT_FROM}\nSubject: ${REPORT_SUBJECT}\n\n$(echo -e $(cat ${TMPREPORT})\n\n)"
          echo -e "From: ${REPORT_FROM}\nSubject: ${REPORT_SUBJECT}\n\n$(echo -e $(cat ${TMPREPORT}))" | ssmtp -C "${ACMEDIR}/config_reporting" "${REPORT_TO}"
-      fi   
+      fi
    fi
 }
 
@@ -100,7 +100,7 @@ process_base64_decode() {
 ## Function: process_config_file --> source values from the default or a defined config file
 process_config_file() {
    local COMMAND="${1}"
-      
+
    ## Set default values
    THRESHOLD=30
    ALWAYS_GENERATE_KEY=false
@@ -118,12 +118,12 @@ process_config_file() {
 
       ## Test if WELLKNOWN entry are included in file, add if missing
       if ! grep -q "WELLKNOWN=" "${ACMEDIR}/config"
-      then 
+      then
          echo "WELLKNOWN=\"/tmp/wellknown\"" >> "${ACMEDIR}/config"
       fi
       ## Test if HOOK entry are included in file, add if missing
       if ! grep -q "HOOK=" "${ACMEDIR}/config"
-      then 
+      then
          echo "HOOK=\"\${BASEDIR}/f5hook.sh\"" >> "${ACMEDIR}/config"
       fi
    else
@@ -140,12 +140,12 @@ process_config_file() {
 
       ## Test if WELLKNOWN entry are included in file, add if missing
       if ! grep -q "WELLKNOWN=" "${THIS_COMMAND_CONFIG}"
-      then 
+      then
          echo "WELLKNOWN=\"/tmp/wellknown\"" >> "${THIS_COMMAND_CONFIG}"
       fi
       ## Test if HOOK entry are included in file, add if missing
       if ! grep -q "HOOK=" "${THIS_COMMAND_CONFIG}"
-      then 
+      then
          echo "HOOK=\"\${BASEDIR}/f5hook.sh\"" >> "${THIS_COMMAND_CONFIG}"
       fi
    fi
@@ -153,24 +153,32 @@ process_config_file() {
 
 
 ## Function: (handler) generate_new_cert_key
-## This function triggers the ACME client directly, which then calls the configured hook script to assist 
+## This function triggers the ACME client directly, which then calls the configured hook script to assist
 ## in auto-generating a new certificate and private key. The hook script then installs the cert/key if not
 ## present, or updates the existing cert/key via TMSH transaction.
 generate_new_cert_key() {
    local DOMAIN="${1}" COMMAND="${2}"
    process_errors "DEBUG (handler function: generate_new_cert_key)\n   DOMAIN=${DOMAIN}\n   COMMAND=${COMMAND}\n"
-   ### Test if domain includes wildcard
+#####
+   ### Cleaning DOMAIN with spaces and slashes
    if [[ $DOMAIN =~ [[:space:]] ]]
    then
-      process_errors "***DEBUG (handler function: generate_new_cert_key)\n - WILDCARD DOMAIN: $DOMAIN"
-      ### Process only the Wildcard
+      process_errors "***generate_new_cert_key - WILDCARD DOMAIN: $DOMAIN"
+
+
+      ###SOLO WILDCARD
       ## Trigger ACME client. All BIG-IP certificate management is then handled by the hook script
-      cmd="${ACMEDIR}/dehydrated ${WILDCARD_OPTIONS} -c -g -d \"${DOMAIN}\" $(echo ${COMMAND} | tr -d '"')"
-      process_errors "DEBUG (handler: ACME client command):\n$cmd\n"
+      # cmd="${ACMEDIR}/dehydrated ${WILDCARD_OPTIONS} -c -g -d \"${DOMAIN}\" $(echo ${COMMAND} | tr -d '"')"
+      # process_errors "DEBUG (handler: ACME client command):\n$cmd\n"
       # do=$(REPORT=${REPORT} eval $cmd 2>&1 | cat | sed 's/^/    /')
+      # process_errors "DEBUG (handler: ACME client output):\n$do\n"
+      cmd="${ACMEDIR}/dehydrated ${WILDCARD_OPTIONS} -c -g -d \"${DOMAIN}\" $(echo ${COMMAND} | tr -d '"')"
+      # cmd="${ACMEDIR}/dehydrated ${WILDCARD_OPTIONS} -c -g -d \"${DOMAIN}\" $(echo ${COMMAND} | tr -d '"')"
+      process_errors "DEBUG (handler: ACME client command):\n$cmd\n"
       eval $cmd
       #process_errors "DEBUG (handler: ACME client output):\n$do\n"
    else
+######
       ## Trigger ACME client. All BIG-IP certificate management is then handled by the hook script
       cmd="${ACMEDIR}/dehydrated ${STANDARD_OPTIONS} -c -g -d ${DOMAIN} $(echo ${COMMAND} | tr -d '"')"
       process_errors "DEBUG (handler: ACME client command):\n$cmd\n"
@@ -192,7 +200,7 @@ generate_new_cert_key() {
 ## the renewed certificate and replaces the existing certificate via TMSH transaction.
 generate_cert_from_csr() {
    local DOMAIN="${1}" COMMAND="${2}"
-   
+
    process_errors "DEBUG (handler function: generate_cert_from_csr)\n   DOMAIN=${DOMAIN}\n   COMMAND=${COMMAND}\n"
 
    ## Fetch existing subject-alternative-name (SAN) values from the certificate
@@ -210,7 +218,7 @@ generate_cert_from_csr() {
       tmsh delete sys crypto csr ${DOMAIN} > /dev/null 2>&1
    fi
    tmsh create sys crypto csr ${DOMAIN} common-name ${DOMAIN} subject-alternative-name "${certsan}" key ${DOMAIN}
-   
+
    ## Dump csr to cert.csr in DOMAIN subfolder
    mkdir -p ${ACMEDIR}/certs/${DOMAIN} 2>&1
    tmsh list sys crypto csr ${DOMAIN} |sed -n '/-----BEGIN CERTIFICATE REQUEST-----/,/-----END CERTIFICATE REQUEST-----/p' > ${ACMEDIR}/certs/${DOMAIN}/cert.csr
@@ -266,7 +274,7 @@ process_handler_config () {
    IFS="=" read -r DOMAIN COMMAND <<< $1
       process_errors "DEBUG (handler function: process_handler_config)\n  DOMAIN: $DOMAIN "
 
-   
+
    ## Pull values from default or defined config file
    process_config_file "$COMMAND"
 
@@ -277,10 +285,10 @@ process_handler_config () {
       DOMAIN=$(echo "$DOMAIN" | sed 's/\\//' | sed 's/\"//g')
       process_errors "***Removing slashes: $DOMAIN"
    fi
-   
+
    if [[ ( ! -z "$SINGLEDOMAIN" ) && ( ! "$SINGLEDOMAIN" == "$DOMAIN" ) ]]
    then
-      ## Break out of function if SINGLEDOMAIN is specified and this pass is not for the matching domain in the dg 
+      ## Break out of function if SINGLEDOMAIN is specified and this pass is not for the matching domain in the dg
       process_errors "DEBUG (handler function: process_handler_config)\n SINGLEDOMAIN: $SINGLEDOMAIN DOMAIN: $DOMAIN  --domain argument specified for ($DOMAIN).\n"
       continue
    else
@@ -314,7 +322,7 @@ process_handler_config () {
    then
       process_errors "PANIC: Configuration entry for ($DOMAIN) must include a \"--ca\" option. Skipping.\n"
       echo "    PANIC: Configuration entry for ($DOMAIN) must include a \"--ca\" option. Skipping." >> ${REPORT}
-      continue 
+      continue
    fi
 
    ## Validation check: Defined provider should be registered
@@ -326,7 +334,7 @@ process_handler_config () {
       ## Extract --ca and --config values
       COMMAND_CA=$(echo "$COMMAND" | sed -E 's/.*(--ca+\s[^[:space:]]+).*/\1/g;s/"//g')
       if [[ "$COMMAND" =~ "--config " ]]; then COMMAND_CONFIG=$(echo "$COMMAND" | sed -E 's/.*(--config+\s[^[:space:]]+).*/\1/g;s/"//g'); else COMMAND_CONFIG=""; fi
-      
+
       ## Handling registration
       cmd="${ACMEDIR}/dehydrated --register --accept-terms ${COMMAND_CA} ${COMMAND_CONFIG}"
       do=$(eval $cmd 2>&1 | cat | sed 's/^/   /')
@@ -346,13 +354,13 @@ process_handler_config () {
       process_errors "DEBUG: Certificate does not exist, or ALWAYS_GENERATE_KEY is true --> call generate_new_cert_key.\n"
       echo "    Certificate does not exist, or ALWAYS_GENERATE_KEY is true. Generating a new cert and key." >> ${REPORT}
       generate_new_cert_key "$DOMAIN" "$COMMAND"
-   
+
    elif [[ "$certexists" == "true" && "$CHECK_REVOCATION" == "true" && "$(process_revocation_check "${DOMAIN}")" == "revoked" ]]
    then
       process_errors "DEBUG: Certificate exists, CHECK_REVOCATION is enabled, and revocation check found that (${DOMAIN}) is revoked -- Fetching new certificate and key"
       echo "    Certificate exists, CHECK_REVOCATION is enabled, and revocation check found that (${DOMAIN}) is revoked -- Fetching new certificate and key." >> ${REPORT}
       generate_new_cert_key "$DOMAIN" "$COMMAND"
-   
+
    else
       ## Else call the generate_cert_from_csr function
       process_errors "DEBUG: Certificate exists and ALWAYS_GENERATE_KEY is false --> call generate_cert_from_csr.\n"
@@ -404,7 +412,7 @@ process_get_configs() {
    ISHA=$(tmsh show cm sync-status | grep Standalone | wc -l)
    if [[ "${ISHA}" = "0" ]]
    then
-      ## ACCOUNTS STATE DATA 
+      ## ACCOUNTS STATE DATA
       ## Test if the iFile exists (f5_acme_state) and pull into local folder if it does
       ifileexists=true && [[ "$(tmsh list sys file ifile f5_acme_account_state 2>&1)" =~ "was not found" ]] && ifileexists=false
       if ($ifileexists)
@@ -416,18 +424,18 @@ process_get_configs() {
          ACCTSTATEEXISTS="no"
          process_errors "DEBUG No iFile central account store found - New state data will need to be created locally\n"
       fi
-      
+
       ## Generate checksum on accounts state file (accounts folder)
       # STARTSUM=$(find -type f \( -path "./accounts/*" -o -name "config*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
       # ACCTSTARTSUM=$(find -type f \( -path "./accounts/*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
       ACCTSTARTSUM=$(find "${ACMEDIR}/accounts" -type f \( -path "*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
-      
+
       ## Generate checksum on config state files (config* files)
       # CONFSTARTSUM=$(find -type f \( -name "config*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
       CONFSTARTSUM=$(find "${ACMEDIR}" -type f \( -name "config*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
 
 
-      ## CONFIGS STATE DATA 
+      ## CONFIGS STATE DATA
       ## Process config files only if --save is specified
       if [[ "${SAVECONFIG}" == "yes" ]]
       then
@@ -456,7 +464,7 @@ process_put_configs() {
    ## Only run this on HA systems
    if [[ "${ISHA}" = "0" ]]
    then
-      ## ACCOUNTS STATE DATA 
+      ## ACCOUNTS STATE DATA
       ## Generate checksum on state files (accounts folder)
       # ENDSUM=$(find -type f \( -path "./accounts/*" -o -name "config*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
       # ACCTENDSUM=$(find -type f \( -path "./accounts/*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
@@ -486,13 +494,13 @@ process_put_configs() {
             ## iFile doesn't exist - create iFile and delete local file
             tmsh create sys file ifile f5_acme_account_state source-path "file://${ACMEDIR}/accounts.b64"
             rm -f accounts.b64
-         fi 
+         fi
       else
          process_errors "DEBUG START/END account checksums detects no changes - not pushing account state data to iFile central store\n"
       fi
 
 
-      ## CONFIGS STATE DATA 
+      ## CONFIGS STATE DATA
       if [[ "$CONFSTARTSUM" != "$CONFENDSUM" || "$CONFSTATEEXISTS" == "no" ]]
       then
          process_errors "DEBUG START/END config checksums are different or iFile state is missing - pushing config state data to iFile central store\n"
@@ -515,7 +523,7 @@ process_put_configs() {
          fi
       else
          process_errors "DEBUG START/END config checksums detects no changes - not pushing config state data to iFile central store\n"
-      fi      
+      fi
    fi
 }
 
@@ -534,10 +542,10 @@ process_revocation_check() {
    then
       ## Get hostname from OCSP URI
       OCSPHOST=$(echo $OCSPURL | sed -E 's/^https?:\/\/([^:|\/]+)[:\/]?.*/\1/')
-      
+
       ## Perform revocation check
       revstate=$(openssl ocsp -issuer <(echo "$CHAIN") -cert <(echo "$CERT") -url "${OCSPURL}" -header "HOST" "${OCSPHOST}" -noverify)
-      
+
       ## Test for "revoked" in response
       if [[ "$revstate" =~ "revoked" ]]
       then
@@ -549,7 +557,7 @@ process_revocation_check() {
       ## Either there's no chain (issuer) for this cert, or no defined OCSP URI --> exit with 'none'
       echo "unavailable"
    fi
-   
+
 }
 
 
@@ -614,7 +622,7 @@ process_handler_main() {
 
       ## Create wellknown folder
       mkdir -p /tmp/wellknown > /dev/null 2>&1
-      
+
       ## Read from the config data group and loop through keys:values
       config=true && [[ "$(tmsh list ltm data-group internal dg_acme_config 2>&1)" =~ "was not found" ]] && config=false
       if ($config)
@@ -710,7 +718,7 @@ main() {
            ;;
 
          --save)
-           echo "  Command Line Option Specified: --save" >> ${REPORT} 
+           echo "  Command Line Option Specified: --save" >> ${REPORT}
            SAVECONFIG="yes"
            ;;
 

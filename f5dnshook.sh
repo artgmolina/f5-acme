@@ -5,7 +5,7 @@
 ## Version: 20231013-1
 ## Description: ACME client hook script used for staging ACME http-01 challenge response, then cleanup
 
-# 
+#
 # Example how to deploy a DNS challenge for Wildcard
 #
 # $1 an operation name (clean_challenge, deploy_challenge, deploy_cert, invalid_challenge or request_failure) and some operands for that. For deploy_challenge
@@ -30,7 +30,7 @@ process_config_file() {
     FULLCHAIN=true
     ZEROCYCLE=3
     CREATEPROFILE=false
-    DEBUGLOG=false
+    DEBUGLOG=true
 
     . "${CONFIG}"
 }
@@ -58,11 +58,11 @@ deploy_challenge() {
     #dg_record_exist=true && [[ "$(tmsh list ltm data-group internal dg_acme_challenge records {${DOMAIN}} 2>&1)" =~ "was not found" ]]
     dg_record=$(tmsh list ltm data-group internal dg_acme_challenge records |grep -A1 ${DOMAIN}|grep data|cut -d'"' -f2)
     ### Check current record to identify wildcards if a dg record is already created
-    if [ ! -z "$dg_record" ] 
+    if [ ! -z "$dg_record" ]
     then
         #Not Empty
         process_errors "DEBUG (hook function: deploy_challenge -> dg_acme_challenge record already exist.  DG Record: $dg_record.)\n"
-        tmsh modify ltm data-group internal dg_acme_challenge { records modify { \"${DOMAIN}\" { data \"${dg_record}\|\|${TOKEN_VALUE}\" } 
+        tmsh modify ltm data-group internal dg_acme_challenge { records modify { \"${DOMAIN}\" { data \"${dg_record}\|\|${TOKEN_VALUE}\" }
         process_errors "DEBUG (hook function: deploy_challenge -> dg_acme_challenge record already exist.  DG Record: $dg_record.)\n"
     else
         process_errors "DEBUG (hook function: deploy_challenge -> dg_acme_challenge record is Empty)\n"
@@ -85,7 +85,7 @@ deploy_cert() {
     ## Import new cert and key
     local DOMAIN="${1}" KEYFILE="${2}" CERTFILE="${3}" FULLCHAINFILE="${4}" CHAINFILE="${5}" TIMESTAMP="${6}"
     process_errors "DEBUG (hook function: deploy_cert)\n   DOMAIN=${DOMAIN}\n   KEYFILE=${KEYFILE}\n   CERTFILE=${CERTFILE}\n   FULLCHAINFILE=${FULLCHAINFILE}\n   CHAINFILE=${CHAINFILE}\n   TIMESTAMP=${TIMESTAMP}\n"
-        
+
 
     ## Test if cert and key exist
     key=true && [[ "$(tmsh list sys file ssl-key ${DOMAIN} 2>&1)" =~ "was not found" ]] && key=false
@@ -144,7 +144,7 @@ deploy_cert() {
         if [[ $clientssl == "false" ]]
         then
             ## Create the clientssl profile
-            tmsh create ltm profile client-ssl "${DOMAIN}_clientssl" cert-key-chain replace-all-with { ${DOMAIN} { key ${DOMAIN} cert ${DOMAIN} } } 
+            tmsh create ltm profile client-ssl "${DOMAIN}_clientssl" cert-key-chain replace-all-with { ${DOMAIN} { key ${DOMAIN} cert ${DOMAIN} } }
         fi
     fi
 }

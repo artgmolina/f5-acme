@@ -31,7 +31,7 @@ process_config_file() {
     FULLCHAIN=true
     ZEROCYCLE=3
     CREATEPROFILE=false
-    DEBUGLOG=false
+    DEBUGLOG=true
 
     . "${CONFIG}"
 }
@@ -76,7 +76,9 @@ deploy_challenge() {
 clean_challenge() {
     ## Delete the record from the data group
     local DOMAIN="${1}" TOKEN_FILENAME="${2}" TOKEN_VALUE="${3}"
-    dg_record=$(tmsh list ltm data-group internal dg_acme_challenge records |grep ${DOMAIN}
+    #dg_record=$(tmsh list ltm data-group internal dg_acme_challenge records |grep ${DOMAIN} --> Must be cleaned the wildcard name only
+    dg_record=$(tmsh list ltm data-group internal dg_acme_challenge records |grep -A1 ${DOMAIN}|grep data|awk '{printf $2}')
+
     if [ ! -z "$dg_record" ] 
     then
         process_errors "DEBUG (hook function: clean_challenge)\n   DOMAIN=${DOMAIN}\n   TOKEN_FILENAME=${TOKEN_FILENAME}\n   TOKEN_VALUE=${TOKEN_VALUE}\n"
