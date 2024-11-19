@@ -76,7 +76,9 @@ deploy_challenge() {
 clean_challenge() {
     ## Delete the record from the data group
     local DOMAIN="${1}" TOKEN_FILENAME="${2}" TOKEN_VALUE="${3}"
-    #dg_record=$(tmsh list ltm data-group internal dg_acme_challenge records |grep ${DOMAIN} --> Must be cleaned the wildcard name only
+    
+    ###Below was updated for wildcards
+    #dg_record=$(tmsh list ltm data-group internal dg_acme_challenge records |grep ${DOMAIN} 
     dg_record=$(tmsh list ltm data-group internal dg_acme_challenge records |grep -A1 ${DOMAIN}|grep data|awk '{printf $2}')
 
     if [ ! -z "$dg_record" ] 
@@ -104,7 +106,7 @@ deploy_cert() {
         then
             ## Create transaction to update existing cert and key
             process_errors "DEBUG (hook function: deploy_cert -> Updating existing cert and key)\n"
-            echo "    Updating existing cert and key." >> ${REPORT}
+            echo "    Updating existing cert and key." >> "${REPORT}"
             (echo create cli transaction
             echo install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
             echo install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/fullchain.pem
@@ -113,7 +115,7 @@ deploy_cert() {
         else
             ## Create transaction to update existing cert and key
             process_errors "DEBUG (hook function: deploy_cert -> Updating existing cert and key)\n"
-            echo "    Updating existing cert and key." >> ${REPORT}
+            echo "    Updating existing cert and key." >> "${REPORT}"
             (echo create cli transaction
             echo install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
             echo install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/cert.pem
@@ -125,12 +127,12 @@ deploy_cert() {
         then
             ## Create cert and key
             process_errors "DEBUG (hook function: deploy_cert -> Installing new cert and key)\n"
-            echo "    Installing new cert and key." >> ${REPORT}
+            echo "    Installing new cert and key." >> "${REPORT}"
             tmsh install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
             tmsh install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/fullchain.pem
         else
             process_errors "DEBUG (hook function: deploy_cert -> Installing new cert and key)\n"
-            echo "    Installing new cert and key." >> ${REPORT}
+            echo "    Installing new cert and key." >> "${REPORT}"
             tmsh install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
             tmsh install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/cert.pem
         fi
