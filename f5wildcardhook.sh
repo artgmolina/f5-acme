@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ## F5 BIG-IP ACME Client (Dehydrated) Hook Script
-## Maintainer: kevin-at-f5-dot-com
+## Maintainer: arturo-at-f5-com
 ## Version: 20231013-1
 ## Description: ACME client hook script used for staging ACME http-01 challenge response, then cleanup
 
