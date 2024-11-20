@@ -83,4 +83,4 @@ WELLKNOWN="/tmp/wellknown"
 
 # Program or function called in certain situations
 # BASEDIR and WELLKNOWN variables are exported and can be used in an external program
-HOOK=${BASEDIR}/f5dnshook.sh
+HOOK=${BASEDIR}/f5wildcardhook.sh
