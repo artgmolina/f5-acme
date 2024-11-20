@@ -9,7 +9,7 @@
 ########################################################
 
 ## Set to true to enable reporting
-ENABLE_REPORTING=false
+ENABLE_REPORTING=true
 
 ## Set to SMTP host:port
 MAILHUB=smtp.acme.net:587

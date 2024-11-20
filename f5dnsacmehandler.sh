@@ -48,6 +48,8 @@ CONFSTATEEXISTS="no"
 THISCONFIG=""
 SAVECONFIG="no"
 ENABLE_REPORTING=false
+FORCE_SYNC=false
+DEVICE_GROUP=""
 MAILHUB=""
 USESTARTTLS=no
 USETLS=no
@@ -59,6 +61,7 @@ REPORT_TO=""
 REPORT_SUBJECT=""
 FROMLINEOVERRIDE=no
 REPORT=""
+HASCHANGED="false"
 
 
 ## Function: process_errors --> print error and debug logs to the log file
@@ -289,7 +292,7 @@ process_handler_config () {
 
    if [[ ( ! -z "$SINGLEDOMAIN" ) && ( ! "$SINGLEDOMAIN" == "$DOMAIN" ) ]]
    then
-      ## Break out of function if SINGLEDOMAIN is specified and this pass is not for the matching domain in the dg
+      ## Break out of function if SINGLEDOMAIN is specified and this pass is not for the matching domain
       process_errors "DEBUG (handler function: process_handler_config)\n SINGLEDOMAIN: $SINGLEDOMAIN DOMAIN: $DOMAIN  --domain argument specified for ($DOMAIN).\n"
       continue
    else
@@ -354,12 +357,14 @@ process_handler_config () {
    then
       process_errors "DEBUG: Certificate does not exist, or ALWAYS_GENERATE_KEY is true --> call generate_new_cert_key.\n"
       echo "    Certificate does not exist, or ALWAYS_GENERATE_KEY is true. Generating a new cert and key." >> ${REPORT}
+      HASCHANGED="true"
       generate_new_cert_key "$DOMAIN" "$COMMAND"
 
    elif [[ "$certexists" == "true" && "$CHECK_REVOCATION" == "true" && "$(process_revocation_check "${DOMAIN}")" == "revoked" ]]
    then
       process_errors "DEBUG: Certificate exists, CHECK_REVOCATION is enabled, and revocation check found that (${DOMAIN}) is revoked -- Fetching new certificate and key"
       echo "    Certificate exists, CHECK_REVOCATION is enabled, and revocation check found that (${DOMAIN}) is revoked -- Fetching new certificate and key." >> ${REPORT}
+      HASCHANGED="true"
       generate_new_cert_key "$DOMAIN" "$COMMAND"
 
    else
@@ -373,17 +378,18 @@ process_handler_config () {
          date_cert=$(tmsh list sys crypto cert ${DOMAIN} | grep expiration | awk '{$1=$1}1' | sed 's/expiration //')
          date_cert=$(date -d "$date_cert" "+%Y%m%d")
          date_today=$(date +"%Y%m%d")
-         date_test=$(date --date=@$(($date_cert - $date_today)) +'%d')
+         date_test=$(( ($(date -d "$date_cert" +%s) - $(date -d "$date_today" +%s)) / 86400 ))
          process_errors "DEBUG (handler: dates)\n   date_cert=$date_cert\n   date_today=$date_today\n   date_test=$date_test\n"
       else
-         date_test=10000
+         date_test=0
          process_errors "DEBUG (handler: dates)\n   --force argument specified, forcing renewal\n"
       fi
 
       ## If certificate is past the threshold window, initiate renewal
-      if [ $THRESHOLD -le $date_test ]
+      if [ $THRESHOLD -ge $date_test ]
       then
          process_errors "DEBUG (handler: threshold) THRESHOLD ($THRESHOLD) -le date_test ($date_test) - Starting renewal process for ${DOMAIN}\n"
+         HASCHANGED="true"
          generate_cert_from_csr "$DOMAIN" "$COMMAND"
       else
          process_errors "DEBUG (handler: bypass) Bypassing renewal process for ${DOMAIN} - Certificate within threshold.\n"
@@ -479,10 +485,17 @@ process_put_configs() {
       if [[ "$ACCTSTARTSUM" != "$ACCTENDSUM" || "$ACCTSTATEEXISTS" == "no" ]]
       then
          process_errors "DEBUG START/END account checksums are different or iFile state is missing - pushing account state data to iFile central store\n"
-
+         
+         ## Update HASCHANGED flag
+         HASCHANGED="true"
+         
          ## First compress and base64-encode the accounts folder and config files
          # tar -czf - accounts/ config* | base64 -w 0 > data.b64
-         tar -czf - "${ACMEDIR}/accounts/" | base64 -w 0 > "${ACMEDIR}/accounts.b64"
+         cd "${ACMEDIR}"
+         tar -czf - "./accounts/" | base64 -w 0 > "${ACMEDIR}/accounts.b64"
+         
+         #old
+         #tar -czf - "${ACMEDIR}/accounts/" | base64 -w 0 > "${ACMEDIR}/accounts.b64"
 
          ## Test if the iFile exists (f5_acme_account_state)
          ifileexists=true && [[ "$(tmsh list sys file ifile f5_acme_account_state 2>&1)" =~ "was not found" ]] && ifileexists=false
@@ -525,7 +538,16 @@ process_put_configs() {
       else
          process_errors "DEBUG START/END config checksums detects no changes - not pushing config state data to iFile central store\n"
       fi
+      
+      if [[ "$HASCHANGED" == "true" && "$FORCE_SYNC" == "true" ]]
+      then
+         ## The config has changed and FORCE_SYNC is set to true - force an HA sync
+         process_errors "DEBUG START/END config checksums are different and FORCE_SYNC is set to true - forcing an HA sync operation\n"
+         tmsh run /cm config-sync to-group ${DEVICE_GROUP}
+      fi
    fi
+   
+   
 }
 
 
