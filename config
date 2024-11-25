@@ -33,7 +33,7 @@ OCSP_MUST_STAPLE="yes"
 THRESHOLD=30
 
 ## Set to true to always generate a private key. Otherwise a CSR is created from an existing key to support HSM/FIPS environments (default: false)
-ALWAYS_GENERATE_KEY=false
+ALWAYS_GENERATE_KEY=true
 
 ## Set to true to attempt OCSP revocation check on existing certificates (default: false)
 CHECK_REVOCATION=false

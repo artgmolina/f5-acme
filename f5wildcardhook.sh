@@ -169,7 +169,8 @@ deploy_cert() {
     ### Temporary disabled
     #find . -type f -print0 | xargs -0 shred -fuz -n ${ZEROCYCLE}
     cd ${ACMEDIR}/
-    rm -rf ${ACMEDIR}/certs/${DOMAIN}/
+    ### Temporary disabled
+    #rm -rf ${ACMEDIR}/certs/${DOMAIN}/
 
 
     ## Test if corresponding clientssl profile exists
