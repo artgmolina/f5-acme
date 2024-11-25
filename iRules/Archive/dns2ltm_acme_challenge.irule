@@ -1,0 +1,30 @@
+# Description: The iRule is installed on the DNS Server. It is in charge of requesting the challenge from the LTM associated to the FQDN
+# 
+when RULE_INIT {
+   set static::DEBUGACME 1
+}
+
+when HTTP_REQUEST priority 2 {
+   log local0. "uri: [HTTP::uri]"
+   if {[string tolower [HTTP::uri]] starts_with "/acme_challenge/"} {
+      set main_domain  [substr [HTTP::uri] 16 100]
+      log local0. "dominio a buscar: $main_domain"
+      set response_content [class lookup $main_domain dg_acme_challenge]
+      log local0. "uri a buscar es [substr [HTTP::uri] 16 100]"
+      if {$response_content ne ""} {
+         if {$static::DEBUGACME} {
+            log local0. "[IP::client_addr]:[TCP::client_port]-[IP::local_addr]:[TCP::local_port] Good ACME response: $response_content"
+         }
+         HTTP::respond 200 -version auto content $response_content noserver Content-Type {text/plain} Content-Length [string length $response_content] Cache-Control no-store acme_challenge $response_content
+         #HTTP::respond 200 -version auto content $response_content noserver Content-Type {text/plain} Content-Length [string length $response_content] Cache-Control no-store
+      } else {
+         if { $static::DEBUGACME } {
+            log local0. "[IP::client_addr]:[TCP::client_port]-[IP::local_addr]:[TCP::local_port] Bad ACME request"
+         }
+         HTTP::respond 503 -version auto content "<html><body><h1>503 - Error</h1><p>Content not found.</p></body></html>" noserver Content-Type {text/html } Cache-Control no-store
+      }
+      unset response_content
+      event disable all
+      return
+   }
+}

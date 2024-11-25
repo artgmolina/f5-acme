@@ -109,7 +109,7 @@ process_config_file() {
    ALWAYS_GENERATE_KEY=false
    FULLCHAIN=true
    ERRORLOG=true
-   DEBUGLOG=false
+   DEBUGLOG=true
    CHECK_REVOCATION=false
 
    ## Extract --config value and read config values
@@ -127,6 +127,7 @@ process_config_file() {
       ## Test if HOOK entry are included in file, add if missing
       if ! grep -q "HOOK=" "${ACMEDIR}/config"
       then
+         process_errors "DEBUG: command_config not specifified - HOOK variable does not exist in ${ACMEDIR}/config. Using default f5hook.sh"
          echo "HOOK=\"\${BASEDIR}/f5hook.sh\"" >> "${ACMEDIR}/config"
       fi
    else
@@ -149,6 +150,7 @@ process_config_file() {
       ## Test if HOOK entry are included in file, add if missing
       if ! grep -q "HOOK=" "${THIS_COMMAND_CONFIG}"
       then
+         process_errors "DEBUG: command_config not specified - HOOK variable does not exist in ${ACMEDIR}/config. Using default f5hook.sh"
          echo "HOOK=\"\${BASEDIR}/f5hook.sh\"" >> "${THIS_COMMAND_CONFIG}"
       fi
    fi
@@ -167,7 +169,6 @@ generate_new_cert_key() {
    if [[ $DOMAIN =~ [[:space:]] ]]
    then
       process_errors "***generate_new_cert_key - WILDCARD DOMAIN: $DOMAIN"
-
 
       ###SOLO WILDCARD
       ## Trigger ACME client. All BIG-IP certificate management is then handled by the hook script
