@@ -1,5 +1,5 @@
 # ACME iRule 
-# Installed in the F5 DNS Device, in the DNS Listener.
+# Installed in the F5 DNS Device
 # Description: This iRule is in charge of responding to any TXT DNS Request which begins with _acme-challenge.
 #     1. It removes the domain delegation .gslb.
 #     2. Check the FQDN on the LTM where the ACME client is running
@@ -7,15 +7,14 @@
 #        3.1. The LTM VIP respond the challenge
 #     4. The F5 DNS device respond to the ACME server the TXT record including the ACME challenge.
 
-
 when RULE_INIT {
    set static::DEBUGACME 1
 }
 when DNS_REQUEST priority 2 {
    #_acme-challenge.example.org. 300 IN TXT “gfj9Xq…Rg85nM”
    if {([DNS::question type] eq "TXT") && ([DNS::question name] starts_with "_acme-challenge") } {
-      #set domain [substr [DNS::question name] 16]
-      set domain [string map {_acme-challenge. "" gslb. ""} [DNS::question name]]
+      set domain [substr [DNS::question name] 16]
+      #set domain [string map {_acme-challenge. "" gslb. ""} [DNS::question name]]
       if { $static::DEBUGACME } {
          log local0. "0. Domain without delegation: $domain"
       }

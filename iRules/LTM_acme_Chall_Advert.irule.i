@@ -1,0 +1,31 @@
+# iRule to advertise the challenge collected from the ACME Server to the F5 DNS when requested
+
+
+when RULE_INIT {
+   set static::DEBUGACME 1
+}
+
+when HTTP_REQUEST priority 2 {
+   if {[string tolower [HTTP::uri]] starts_with "/acme_challenge/"} {
+      set main_domain  [substr [HTTP::uri] 16]
+      if { $static::DEBUGACME } {
+         log local0. "Challenge Domain to search for: $main_domain"
+      }
+      set response_content [class lookup $main_domain dg_acme_challenge]
+      if {$response_content ne ""} {
+         if {$static::DEBUGACME} {
+            log local0. "[IP::client_addr]:[TCP::client_port]-[IP::local_addr]:[TCP::local_port] Good ACME response: $response_content"
+         }
+         HTTP::respond 200 -version auto content $response_content noserver Content-Type {text/plain} Content-Length [string length $response_content] Cache-Control no-store
+         #HTTP::respond 200 -version auto content $response_content noserver Content-Type {text/plain} Content-Length [string length $response_content] Cache-Control no-store
+      } else {
+         if { $static::DEBUGACME } {
+            log local0. "[IP::client_addr]:[TCP::client_port]-[IP::local_addr]:[TCP::local_port] Bad ACME request"
+         }
+         HTTP::respond 503 -version auto content "<html><body><h1>503 - Error</h1><p>Content not found.</p></body></html>" noserver Content-Type {text/html } Cache-Control no-store
+      }
+      unset response_content
+      event disable all
+      return
+   }
+}
