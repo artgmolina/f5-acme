@@ -93,97 +93,192 @@ clean_challenge() {
 deploy_cert() {
     ## Import new cert and key
     local DOMAIN="${1}" KEYFILE="${2}" CERTFILE="${3}" FULLCHAINFILE="${4}" CHAINFILE="${5}" TIMESTAMP="${6}"
-    process_errors "DEBUG (hook function: deploy_cert)\n   DOMAIN=$(printf '%q' "${DOMAIN}")\n KEYFILE=${KEYFILE}\n   CERTFILE=${CERTFILE}\n   FULLCHAINFILE=${FULLCHAINFILE}\n   CHAINFILE=${CHAINFILE}\n   TIMESTAMP=${TIMESTAMP}\n"
-        
+    process_errors "DEBUG (hook function: deploy_cert)\n   DOMAIN=${DOMAIN}\n KEYFILE=${KEYFILE}\n   CERTFILE=${CERTFILE}\n   FULLCHAINFILE=${FULLCHAINFILE}\n   CHAINFILE=${CHAINFILE}\n   TIMESTAMP=${TIMESTAMP}\n"
+    
+    if [[ "$DOMAIN" == *'*'* ]]; then
+        echo "The variable contains a wildcard (*)"
+        DOMAIN_WILD=$(printf '%q' "${DOMAIN}")
+        ## Test if cert and key exist
+        key=true && [[ "$(tmsh list sys file ssl-key ${DOMAIN} 2>&1)" =~ "was not found" ]] && key=false
+        cert=true && [[ "$(tmsh list sys file ssl-cert ${DOMAIN} 2>&1)" =~ "was not found" ]] && cert=false
 
-    ## Test if cert and key exist
-    key=true && [[ "$(tmsh list sys file ssl-key ${DOMAIN} 2>&1)" =~ "was not found" ]] && key=false
-    cert=true && [[ "$(tmsh list sys file ssl-cert ${DOMAIN} 2>&1)" =~ "was not found" ]] && cert=false
-
-    if ($key && $cert)
-    then
-        if [[ "${FULLCHAIN}" == "true" ]]
+        if ($key && $cert)
         then
-            ## Create transaction to update existing cert and key
-            ## Updated to take into account the alias folder
-            ##KEYFILE=/shared/acme/certs/star_acmelabs.com/privkey-1732540677.pem
-            ##CERTFILE=/shared/acme/certs/star_acmelabs.com/cert-1732540677.pem
-            # process_errors "DEBUG (hook function: deploy_cert -> Updating existing cert and key)\n"
-            # echo "    Updating existing cert and key." >> "${REPORT}"
-            # (echo create cli transaction
-            # echo install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
-            # echo install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/fullchain.pem
-            # echo submit cli transaction
-            # ) | tmsh
-            process_errors "DEBUG (hook function: deploy_cert -> Updating existing cert and key)\n"
-            echo "    Updating existing cert and key." >> "${REPORT}"
-            (echo create cli transaction
-            echo install sys crypto key ${DOMAIN} from-local-file $KEYFILE
-            echo install sys crypto cert ${DOMAIN} from-local-file $FULLCHAINFILE
-            echo submit cli transaction
-            ) | tmsh
+            if [[ "${FULLCHAIN}" == "true" ]]
+            then
+                ## Create transaction to update existing cert and key
+                ## Updated to take into account the alias folder
+                ##KEYFILE=/shared/acme/certs/star_acmelabs.com/privkey-1732540677.pem
+                ##CERTFILE=/shared/acme/certs/star_acmelabs.com/cert-1732540677.pem
+                # process_errors "DEBUG (hook function: deploy_cert -> Updating existing cert and key)\n"
+                # echo "    Updating existing cert and key." >> "${REPORT}"
+                # (echo create cli transaction
+                # echo install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
+                # echo install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/fullchain.pem
+                # echo submit cli transaction
+                # ) | tmsh
+                process_errors "DEBUG (hook function: deploy_cert -> Updating existing cert and key)\n"
+                echo "    Updating existing cert and key." >> "${REPORT}"
+                (echo create cli transaction
+                echo install sys crypto key ${DOMAIN} from-local-file $KEYFILE
+                echo install sys crypto cert ${DOMAIN} from-local-file $FULLCHAINFILE
+                echo submit cli transaction
+                ) | tmsh
+            else
+                ## Create transaction to update existing cert and key
+                # process_errors "DEBUG (hook function: deploy_cert -> Updating existing cert and key)\n"
+                # echo "    Updating existing cert and key." >> "${REPORT}"
+                # (echo create cli transaction
+                # echo install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
+                # echo install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/cert.pem
+                # echo submit cli transaction
+                # ) | tmsh
+                ## The following commands take into account the alias folder where key and cert are stored for wildcards
+                process_errors "DEBUG (hook function: deploy_cert -> Updating existing cert and key)\n"
+                echo "    Updating existing cert and key." >> "${REPORT}"
+                (echo create cli transaction
+                echo install sys crypto key ${DOMAIN} from-local-file $KEYFILE
+                echo install sys crypto cert ${DOMAIN} from-local-file $CERTFILE
+                echo submit cli transaction
+                ) | tmsh
+            fi
         else
-            ## Create transaction to update existing cert and key
-            # process_errors "DEBUG (hook function: deploy_cert -> Updating existing cert and key)\n"
-            # echo "    Updating existing cert and key." >> "${REPORT}"
-            # (echo create cli transaction
-            # echo install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
-            # echo install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/cert.pem
-            # echo submit cli transaction
-            # ) | tmsh
-            ## The following commands take into account the alias folder where key and cert are stored for wildcards
-            process_errors "DEBUG (hook function: deploy_cert -> Updating existing cert and key)\n"
-            echo "    Updating existing cert and key." >> "${REPORT}"
-            (echo create cli transaction
-            echo install sys crypto key ${DOMAIN} from-local-file $KEYFILE
-            echo install sys crypto cert ${DOMAIN} from-local-file $CERTFILE
-            echo submit cli transaction
-            ) | tmsh
+            if [[ "${FULLCHAIN}" == "true" ]]
+            then
+                ## Create cert and key
+                # process_errors "DEBUG (hook function: deploy_cert -> Installing new cert and key)\n"
+                # echo "    Installing new cert and key." >> "${REPORT}"
+                # tmsh install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
+                # tmsh install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/fullchain.pem
+                process_errors "DEBUG (hook function: deploy_cert -> Installing new cert and key)\n"
+                echo "    Installing new cert and key." >> "${REPORT}"
+                tmsh install sys crypto key ${DOMAIN} from-local-file $KEYFILE
+                tmsh install sys crypto cert ${DOMAIN} from-local-file $FULLCHAINFILE
+            else
+                # process_errors "DEBUG (hook function: deploy_cert -> Installing new cert and key)\n"
+                # echo "    Installing new cert and key." >> "${REPORT}"
+                # tmsh install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
+                # tmsh install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/cert.pem
+                process_errors "DEBUG (hook function: deploy_cert -> Installing new cert and key)\n"
+                echo "    Installing new cert and key." >> "${REPORT}"
+                tmsh install sys crypto key ${DOMAIN} from-local-file $KEYFILE
+                tmsh install sys crypto cert ${DOMAIN} from-local-file $CERTFILE
+            fi
+        fi
+
+        ## Clean up and zeroize local storage (via shred)
+        cd ${ACMEDIR}/certs/${DOMAIN}
+        ### Temporary disabled
+        #find . -type f -print0 | xargs -0 shred -fuz -n ${ZEROCYCLE}
+        cd ${ACMEDIR}/
+        ### Temporary disabled
+        #rm -rf ${ACMEDIR}/certs/${DOMAIN}/
+
+
+        ## Test if corresponding clientssl profile exists
+        if ($CREATEPROFILE)
+        then
+            clientssl=true && [[ "$(tmsh list ltm profile client-ssl "${DOMAIN}_clientssl" 2>&1)" =~ "was not found" ]] && clientssl=false
+
+            if [[ $clientssl == "false" ]]
+            then
+                ## Create the clientssl profile
+                tmsh create ltm profile client-ssl "${DOMAIN}_clientssl" cert-key-chain replace-all-with { ${DOMAIN} { key ${DOMAIN} cert ${DOMAIN} } } 
+            fi
         fi
     else
-        if [[ "${FULLCHAIN}" == "true" ]]
+        echo "The variable does not contain a wildcard (*)"
+        ## Test if cert and key exist
+        key=true && [[ "$(tmsh list sys file ssl-key ${DOMAIN} 2>&1)" =~ "was not found" ]] && key=false
+        cert=true && [[ "$(tmsh list sys file ssl-cert ${DOMAIN} 2>&1)" =~ "was not found" ]] && cert=false
+
+        if ($key && $cert)
         then
-            ## Create cert and key
-            # process_errors "DEBUG (hook function: deploy_cert -> Installing new cert and key)\n"
-            # echo "    Installing new cert and key." >> "${REPORT}"
-            # tmsh install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
-            # tmsh install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/fullchain.pem
-            process_errors "DEBUG (hook function: deploy_cert -> Installing new cert and key)\n"
-            echo "    Installing new cert and key." >> "${REPORT}"
-            tmsh install sys crypto key ${DOMAIN} from-local-file $KEYFILE
-            tmsh install sys crypto cert ${DOMAIN} from-local-file $FULLCHAINFILE
+            if [[ "${FULLCHAIN}" == "true" ]]
+            then
+                ## Create transaction to update existing cert and key
+                ## Updated to take into account the alias folder
+                ##KEYFILE=/shared/acme/certs/star_acmelabs.com/privkey-1732540677.pem
+                ##CERTFILE=/shared/acme/certs/star_acmelabs.com/cert-1732540677.pem
+                # process_errors "DEBUG (hook function: deploy_cert -> Updating existing cert and key)\n"
+                # echo "    Updating existing cert and key." >> "${REPORT}"
+                # (echo create cli transaction
+                # echo install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
+                # echo install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/fullchain.pem
+                # echo submit cli transaction
+                # ) | tmsh
+                process_errors "DEBUG (hook function: deploy_cert -> Updating existing cert and key)\n"
+                echo "    Updating existing cert and key." >> "${REPORT}"
+                (echo create cli transaction
+                echo install sys crypto key ${DOMAIN} from-local-file $KEYFILE
+                echo install sys crypto cert ${DOMAIN} from-local-file $FULLCHAINFILE
+                echo submit cli transaction
+                ) | tmsh
+            else
+                ## Create transaction to update existing cert and key
+                # process_errors "DEBUG (hook function: deploy_cert -> Updating existing cert and key)\n"
+                # echo "    Updating existing cert and key." >> "${REPORT}"
+                # (echo create cli transaction
+                # echo install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
+                # echo install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/cert.pem
+                # echo submit cli transaction
+                # ) | tmsh
+                ## The following commands take into account the alias folder where key and cert are stored for wildcards
+                process_errors "DEBUG (hook function: deploy_cert -> Updating existing cert and key)\n"
+                echo "    Updating existing cert and key." >> "${REPORT}"
+                (echo create cli transaction
+                echo install sys crypto key ${DOMAIN} from-local-file $KEYFILE
+                echo install sys crypto cert ${DOMAIN} from-local-file $CERTFILE
+                echo submit cli transaction
+                ) | tmsh
+            fi
         else
-            # process_errors "DEBUG (hook function: deploy_cert -> Installing new cert and key)\n"
-            # echo "    Installing new cert and key." >> "${REPORT}"
-            # tmsh install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
-            # tmsh install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/cert.pem
-            process_errors "DEBUG (hook function: deploy_cert -> Installing new cert and key)\n"
-            echo "    Installing new cert and key." >> "${REPORT}"
-            tmsh install sys crypto key ${DOMAIN} from-local-file $KEYFILE
-            tmsh install sys crypto cert ${DOMAIN} from-local-file $CERTFILE
+            if [[ "${FULLCHAIN}" == "true" ]]
+            then
+                ## Create cert and key
+                # process_errors "DEBUG (hook function: deploy_cert -> Installing new cert and key)\n"
+                # echo "    Installing new cert and key." >> "${REPORT}"
+                # tmsh install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
+                # tmsh install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/fullchain.pem
+                process_errors "DEBUG (hook function: deploy_cert -> Installing new cert and key)\n"
+                echo "    Installing new cert and key." >> "${REPORT}"
+                tmsh install sys crypto key ${DOMAIN} from-local-file $KEYFILE
+                tmsh install sys crypto cert ${DOMAIN} from-local-file $FULLCHAINFILE
+            else
+                # process_errors "DEBUG (hook function: deploy_cert -> Installing new cert and key)\n"
+                # echo "    Installing new cert and key." >> "${REPORT}"
+                # tmsh install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
+                # tmsh install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/cert.pem
+                process_errors "DEBUG (hook function: deploy_cert -> Installing new cert and key)\n"
+                echo "    Installing new cert and key." >> "${REPORT}"
+                tmsh install sys crypto key ${DOMAIN} from-local-file $KEYFILE
+                tmsh install sys crypto cert ${DOMAIN} from-local-file $CERTFILE
+            fi
         fi
-    fi
 
-    ## Clean up and zeroize local storage (via shred)
-    cd ${ACMEDIR}/certs/${DOMAIN}
-    ### Temporary disabled
-    #find . -type f -print0 | xargs -0 shred -fuz -n ${ZEROCYCLE}
-    cd ${ACMEDIR}/
-    ### Temporary disabled
-    #rm -rf ${ACMEDIR}/certs/${DOMAIN}/
+        ## Clean up and zeroize local storage (via shred)
+        cd ${ACMEDIR}/certs/${DOMAIN}
+        ### Temporary disabled
+        #find . -type f -print0 | xargs -0 shred -fuz -n ${ZEROCYCLE}
+        cd ${ACMEDIR}/
+        ### Temporary disabled
+        #rm -rf ${ACMEDIR}/certs/${DOMAIN}/
 
 
-    ## Test if corresponding clientssl profile exists
-    if ($CREATEPROFILE)
-    then
-        clientssl=true && [[ "$(tmsh list ltm profile client-ssl "${DOMAIN}_clientssl" 2>&1)" =~ "was not found" ]] && clientssl=false
-
-        if [[ $clientssl == "false" ]]
+        ## Test if corresponding clientssl profile exists
+        if ($CREATEPROFILE)
         then
-            ## Create the clientssl profile
-            tmsh create ltm profile client-ssl "${DOMAIN}_clientssl" cert-key-chain replace-all-with { ${DOMAIN} { key ${DOMAIN} cert ${DOMAIN} } } 
+            clientssl=true && [[ "$(tmsh list ltm profile client-ssl "${DOMAIN}_clientssl" 2>&1)" =~ "was not found" ]] && clientssl=false
+
+            if [[ $clientssl == "false" ]]
+            then
+                ## Create the clientssl profile
+                tmsh create ltm profile client-ssl "${DOMAIN}_clientssl" cert-key-chain replace-all-with { ${DOMAIN} { key ${DOMAIN} cert ${DOMAIN} } } 
+            fi
         fi
     fi
+
+    
 }
 
 
